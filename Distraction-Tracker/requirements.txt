@@ -1,0 +1,27 @@
+# matplotlib
+# opencv-python
+# opencv-contrib-python
+# mediapipe
+# PyQt5
+
+
+python_version < "3.11"
+
+mediapipe==0.10.9
+numpy==1.26.4
+
+opencv-python==4.11.0.86
+opencv-contrib-python==4.11.0.86
+
+matplotlib==3.10.8
+
+PyQt5==5.15.11
+
+pydub==0.25.1
+sounddevice==0.5.5
+
+absl-py==2.4.0
+protobuf==3.20.3
+attrs==25.4.0
+six==1.17.0
+packaging==26.0
