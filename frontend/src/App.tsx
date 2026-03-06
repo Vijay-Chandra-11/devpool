@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import FounderIntent from "./pages/FounderIntent";
 import FounderApply from "./pages/FounderApply";  
+import LiveEditor from "./pages/LiveEditor";
 
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/founder-intent" element={<FounderIntent />} />
           <Route path="/founder-apply" element={<FounderApply />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/editor" element={<LiveEditor />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
