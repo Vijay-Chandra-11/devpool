@@ -1,3 +1,5 @@
 .dev.vars
 github-profile-analyzer/.dev.vars
 github-profile-analyzer/node_modules
+.wrangler/
+.mf/

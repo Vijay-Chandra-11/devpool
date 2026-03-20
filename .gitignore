@@ -2,3 +2,7 @@ venv
 devpool.db
 .dev.vars
 backend/__pycache__
+# Local Databases
+*.db
+*.sqlite
+*.sqlite3
