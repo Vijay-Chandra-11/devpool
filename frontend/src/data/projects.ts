@@ -9,7 +9,7 @@ export interface Project {
   };
   techStack: string[];
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  type: 'Paid' | 'Learning' | 'Open Source';
+  type: 'Paid' | 'Learning' | 'Open Source' | 'Quick Hire' | 'Standard';
   budget?: string;
   timeline: string;
   applicants: number;

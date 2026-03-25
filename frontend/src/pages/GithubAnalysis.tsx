@@ -113,7 +113,7 @@ const GithubAnalysis = () => {
       <PageLayout showFooter={false}>
         <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
           <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
-          <p className="text-muted-foreground animate-pulse font-display text-lg">Cerebras AI is analyzing profile...</p>
+          <p className="text-muted-foreground animate-pulse font-display text-lg">Analyzing profile...</p>
         </div>
       </PageLayout>
     );

@@ -2,6 +2,7 @@ venv
 devpool.db
 .dev.vars
 backend/__pycache__
+live-server/.env
 # Local Databases
 *.db
 *.sqlite

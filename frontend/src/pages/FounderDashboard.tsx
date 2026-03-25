@@ -213,9 +213,9 @@ const FounderDashboard = () => {
             </div>
             
             {/* Relocated Post Button */}
-            <button className="btn-neon flex items-center justify-center gap-2 shrink-0 px-5 py-3 text-sm">
-                <PlusCircle className="w-5 h-5" />
-                <span>Post New Project</span>
+            <button onClick={() => navigate('/post-project')} className="btn-neon flex items-center justify-center gap-2">
+              <PlusCircle className="w-5 h-5" />
+              <span>Post New Project</span>
             </button>
           </motion.header>
 

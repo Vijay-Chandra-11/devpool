@@ -2,6 +2,7 @@
   "name": "live-server",
   "version": "1.0.0",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
@@ -9,6 +10,13 @@
     "@hocuspocus/server": "^2.0.0",
     "@tpmjs/unsandbox": "^0.0.2",
     "dotenv": "^17.3.1",
-    "ws": "^8.19.0"
-  }
+    "ws": "^8.20.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.30"
+  },
+  "description": "",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

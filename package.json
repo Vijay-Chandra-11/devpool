@@ -1,0 +1,27 @@
+{
+  "name": "devpool",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:live": "npm run start --prefix live-server",
+    "dev:backend": "cd backend && venv\\Scripts\\activate && python app.py",
+    "dev": "concurrently -c \"cyan,magenta,yellow\" -n \"REACT,FLASK,TRUST-ENGINE\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:analyzer\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vijay-Chandra-11/devpool.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Vijay-Chandra-11/devpool/issues"
+  },
+  "homepage": "https://github.com/Vijay-Chandra-11/devpool#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
