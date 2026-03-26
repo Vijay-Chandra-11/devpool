@@ -1,420 +1,794 @@
+# # # # # from flask import Blueprint, request, jsonify
+# # # # # import sqlite3
+
+# # # # # devpool_routes = Blueprint("devpool_routes", __name__)
+
+# # # # # def get_db():
+# # # # #     conn = sqlite3.connect("devpool.db")
+# # # # #     conn.row_factory = sqlite3.Row
+# # # # #     return conn
+
+# # # # # # -------------------------------
+# # # # # # CREATE USER
+# # # # # # -------------------------------
+# # # # # @devpool_routes.route("/user", methods=["POST"])
+# # # # # def create_user():
+# # # # #     data = request.json
+# # # # #     conn = get_db()
+# # # # #     cur = conn.cursor()
+
+# # # # #     cur.execute(
+# # # # #         "INSERT INTO users (name, email, role) VALUES (?, ?, ?)",
+# # # # #         (data["name"], data["email"], data["role"])
+# # # # #     )
+
+# # # # #     conn.commit()
+# # # # #     conn.close()
+# # # # #     return {"message": "User created successfully"}
+
+# # # # # # -------------------------------
+# # # # # # CREATE PROJECT (FOUNDER FILLS ALL FIELDS)
+# # # # # # -------------------------------
+# # # # # @devpool_routes.route("/project", methods=["POST"])
+# # # # # def create_project():
+# # # # #     data = request.json
+
+# # # # #     conn = get_db()
+# # # # #     cur = conn.cursor()
+
+# # # # #     cur.execute("""
+# # # # #         INSERT INTO projects 
+# # # # #         (title, description, tech_stack, difficulty, type, timeline, budget, spots_left, founder_name, founder_avatar)
+# # # # #         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+# # # # #     """, (
+# # # # #         data["title"],
+# # # # #         data["description"],
+# # # # #         data["techStack"],
+# # # # #         data["difficulty"],
+# # # # #         data["type"],
+# # # # #         data["timeline"],
+# # # # #         data["budget"],
+# # # # #         data["spotsLeft"],
+# # # # #         data["founderName"],
+# # # # #         data["founderAvatar"]
+# # # # #     ))
+
+# # # # #     conn.commit()
+# # # # #     conn.close()
+
+# # # # #     return {"message": "Project created successfully"}
+
+# # # # # # -------------------------------
+# # # # # # LIST PROJECTS (FULL DATA FOR UI)
+# # # # # # -------------------------------
+# # # # # @devpool_routes.route("/projects", methods=["GET"])
+# # # # # def list_projects():
+# # # # #     conn = get_db()
+# # # # #     cur = conn.cursor()
+
+# # # # #     rows = cur.execute("SELECT * FROM projects").fetchall()
+# # # # #     conn.close()
+
+# # # # #     projects = []
+# # # # #     for row in rows:
+# # # # #         projects.append({
+# # # # #             "id": row["id"],
+# # # # #             "title": row["title"],
+# # # # #             "description": row["description"],
+# # # # #             "techStack": row["tech_stack"].split(","),
+# # # # #             "difficulty": row["difficulty"],
+# # # # #             "type": row["type"],
+# # # # #             "timeline": row["timeline"],
+# # # # #             "budget": row["budget"],
+# # # # #             "spotsLeft": row["spots_left"],
+# # # # #             "applicants": 0,  # can be dynamic later
+# # # # #             "founder": {
+# # # # #                 "name": row["founder_name"],
+# # # # #                 "avatar": row["founder_avatar"]
+# # # # #             }
+# # # # #         })
+
+# # # # #     return jsonify(projects)
+
+
+
+
+# # # # from flask import Blueprint, request, jsonify
+# # # # import sqlite3
+
+# # # # devpool_routes = Blueprint("devpool_routes", __name__)
+
+# # # # def get_db():
+# # # #     conn = sqlite3.connect("devpool.db")
+# # # #     conn.row_factory = sqlite3.Row
+# # # #     return conn
+
+# # # # # -------------------------------
+# # # # # SIGNUP
+# # # # # -------------------------------
+# # # # @devpool_routes.route("/signup", methods=["POST"])
+# # # # def signup():
+# # # #     data = request.json
+# # # #     conn = get_db()
+# # # #     cur = conn.cursor()
+
+# # # #     try:
+# # # #         cur.execute("""
+# # # #             INSERT INTO users (name, email, password)
+# # # #             VALUES (?, ?, ?)
+# # # #         """, (
+# # # #             data["name"],
+# # # #             data["email"],
+# # # #             data["password"]
+# # # #         ))
+
+# # # #         conn.commit()
+# # # #         return {"message": "User registered successfully"}
+
+# # # #     except sqlite3.IntegrityError:
+# # # #         return {"error": "Email already exists"}, 400
+
+# # # #     finally:
+# # # #         conn.close()
+
+# # # # # -------------------------------
+# # # # # LOGIN
+# # # # # -------------------------------
+# # # # @devpool_routes.route("/login", methods=["POST"])
+# # # # def login():
+# # # #     data = request.json
+# # # #     conn = get_db()
+# # # #     cur = conn.cursor()
+
+# # # #     user = cur.execute("""
+# # # #         SELECT * FROM users
+# # # #         WHERE email=? AND password=?
+# # # #     """, (
+# # # #         data["email"],
+# # # #         data["password"]
+# # # #     )).fetchone()
+
+# # # #     conn.close()
+
+# # # #     if not user:
+# # # #         return {"error": "Invalid credentials"}, 401
+
+# # # #     return {
+# # # #         "id": user["id"],
+# # # #         "name": user["name"],
+# # # #         "email": user["email"],
+# # # #         "role": user["role"],
+# # # #         "founder_status": user["founder_status"]
+# # # #     }
+
+# # # # # -------------------------------
+# # # # # APPLY AS FOUNDER (YES CLICKED)
+# # # # # -------------------------------
+# # # # @devpool_routes.route("/apply-founder", methods=["POST"])
+# # # # def apply_founder():
+# # # #     data = request.json
+# # # #     conn = get_db()
+# # # #     cur = conn.cursor()
+
+# # # #     cur.execute("""
+# # # #         UPDATE users
+# # # #         SET founder_status='pending'
+# # # #         WHERE id=?
+# # # #     """, (data["user_id"],))
+
+# # # #     conn.commit()
+# # # #     conn.close()
+
+# # # #     return {"message": "Founder application submitted"}
+
+# # # # # -------------------------------
+# # # # # CREATE PROJECT (APPROVED FOUNDERS ONLY)
+# # # # # -------------------------------
+# # # # @devpool_routes.route("/project", methods=["POST"])
+# # # # def create_project():
+# # # #     data = request.json
+# # # #     conn = get_db()
+# # # #     cur = conn.cursor()
+
+# # # #     cur.execute("""
+# # # #         INSERT INTO projects
+# # # #         (title, description, tech_stack, difficulty, type, timeline,
+# # # #          budget, spots_left, founder_name, founder_avatar)
+# # # #         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+# # # #     """, (
+# # # #         data["title"],
+# # # #         data["description"],
+# # # #         data["techStack"],
+# # # #         data["difficulty"],
+# # # #         data["type"],
+# # # #         data["timeline"],
+# # # #         data["budget"],
+# # # #         data["spotsLeft"],
+# # # #         data["founderName"],
+# # # #         data["founderAvatar"]
+# # # #     ))
+
+# # # #     conn.commit()
+# # # #     conn.close()
+
+# # # #     return {"message": "Project created successfully"}
+
+# # # # # -------------------------------
+# # # # # LIST PROJECTS
+# # # # # -------------------------------
+# # # # @devpool_routes.route("/projects", methods=["GET"])
+# # # # def list_projects():
+# # # #     conn = get_db()
+# # # #     cur = conn.cursor()
+
+# # # #     rows = cur.execute("SELECT * FROM projects").fetchall()
+# # # #     conn.close()
+
+# # # #     projects = []
+# # # #     for row in rows:
+# # # #         projects.append({
+# # # #             "id": row["id"],
+# # # #             "title": row["title"],
+# # # #             "description": row["description"],
+# # # #             "techStack": row["tech_stack"].split(","),
+# # # #             "difficulty": row["difficulty"],
+# # # #             "type": row["type"],
+# # # #             "timeline": row["timeline"],
+# # # #             "budget": row["budget"],
+# # # #             "spotsLeft": row["spots_left"],
+# # # #             "applicants": 0,
+# # # #             "founder": {
+# # # #                 "name": row["founder_name"],
+# # # #                 "avatar": row["founder_avatar"]
+# # # #             }
+# # # #         })
+
+# # # #     return jsonify(projects)
+
+
+
+
+
+# # # from flask import Blueprint, request, jsonify
+# # # import sqlite3
+# # # import base64
+# # # import requests
+
+# # # devpool_routes = Blueprint("devpool_routes", __name__)
+
+# # # # TODO: Replace with your actual GitHub token (Settings -> Developer Settings -> Personal Access Tokens (classic))
+# # # # Ensure the token has the "repo" scope checked.
+# # # GITHUB_TOKEN = "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN"
+
+# # # def get_db():
+# # #     conn = sqlite3.connect("devpool.db")
+# # #     conn.row_factory = sqlite3.Row
+# # #     return conn
+
+# # # # -------------------------------
+# # # # SIGNUP
+# # # # -------------------------------
+# # # @devpool_routes.route("/signup", methods=["POST"])
+# # # def signup():
+# # #     data = request.json
+# # #     conn = get_db()
+# # #     cur = conn.cursor()
+
+# # #     try:
+# # #         cur.execute("""
+# # #             INSERT INTO users (name, email, password)
+# # #             VALUES (?, ?, ?)
+# # #         """, (
+# # #             data["name"],
+# # #             data["email"],
+# # #             data["password"]
+# # #         ))
+
+# # #         conn.commit()
+# # #         return {"message": "User registered successfully"}
+
+# # #     except sqlite3.IntegrityError:
+# # #         return {"error": "Email already exists"}, 400
+
+# # #     finally:
+# # #         conn.close()
+
+# # # # -------------------------------
+# # # # LOGIN
+# # # # -------------------------------
+# # # @devpool_routes.route("/login", methods=["POST"])
+# # # def login():
+# # #     data = request.json
+# # #     conn = get_db()
+# # #     cur = conn.cursor()
+
+# # #     user = cur.execute("""
+# # #         SELECT * FROM users
+# # #         WHERE email=? AND password=?
+# # #     """, (
+# # #         data["email"],
+# # #         data["password"]
+# # #     )).fetchone()
+
+# # #     conn.close()
+
+# # #     if not user:
+# # #         return {"error": "Invalid credentials"}, 401
+
+# # #     return {
+# # #         "id": user["id"],
+# # #         "name": user["name"],
+# # #         "email": user["email"],
+# # #         "role": user["role"],
+# # #         "founder_status": user["founder_status"]
+# # #     }
+
+# # # # -------------------------------
+# # # # APPLY AS FOUNDER (YES CLICKED)
+# # # # -------------------------------
+# # # @devpool_routes.route("/apply-founder", methods=["POST"])
+# # # def apply_founder():
+# # #     data = request.json
+# # #     conn = get_db()
+# # #     cur = conn.cursor()
+
+# # #     cur.execute("""
+# # #         UPDATE users
+# # #         SET founder_status='pending'
+# # #         WHERE id=?
+# # #     """, (data["user_id"],))
+
+# # #     conn.commit()
+# # #     conn.close()
+
+# # #     return {"message": "Founder application submitted"}
+
+# # # # -------------------------------
+# # # # CREATE PROJECT (APPROVED FOUNDERS ONLY)
+# # # # -------------------------------
+# # # @devpool_routes.route("/project", methods=["POST"])
+# # # def create_project():
+# # #     data = request.json
+# # #     conn = get_db()
+# # #     cur = conn.cursor()
+
+# # #     cur.execute("""
+# # #         INSERT INTO projects
+# # #         (title, description, tech_stack, difficulty, type, timeline,
+# # #          budget, spots_left, founder_name, founder_avatar)
+# # #         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+# # #     """, (
+# # #         data["title"],
+# # #         data["description"],
+# # #         data["techStack"],
+# # #         data["difficulty"],
+# # #         data["type"],
+# # #         data["timeline"],
+# # #         data["budget"],
+# # #         data["spotsLeft"],
+# # #         data["founderName"],
+# # #         data["founderAvatar"]
+# # #     ))
+
+# # #     conn.commit()
+# # #     conn.close()
+
+# # #     return {"message": "Project created successfully"}
+
+# # # # -------------------------------
+# # # # LIST PROJECTS
+# # # # -------------------------------
+# # # @devpool_routes.route("/projects", methods=["GET"])
+# # # def list_projects():
+# # #     conn = get_db()
+# # #     cur = conn.cursor()
+
+# # #     rows = cur.execute("SELECT * FROM projects").fetchall()
+# # #     conn.close()
+
+# # #     projects = []
+# # #     for row in rows:
+# # #         projects.append({
+# # #             "id": row["id"],
+# # #             "title": row["title"],
+# # #             "description": row["description"],
+# # #             "techStack": row["tech_stack"].split(","),
+# # #             "difficulty": row["difficulty"],
+# # #             "type": row["type"],
+# # #             "timeline": row["timeline"],
+# # #             "budget": row["budget"],
+# # #             "spotsLeft": row["spots_left"],
+# # #             "applicants": 0,
+# # #             "founder": {
+# # #                 "name": row["founder_name"],
+# # #                 "avatar": row["founder_avatar"]
+# # #             }
+# # #         })
+
+# # #     return jsonify(projects)
+
+# # # # -------------------------------
+# # # # GITHUB COMMIT (FROM LIVE EDITOR)
+# # # # -------------------------------
+# # # @devpool_routes.route('/api/github/commit', methods=['POST', 'OPTIONS'])
+# # # def github_commit():
+# # #     # Handle CORS preflight request explicitly
+# # #     if request.method == "OPTIONS":
+# # #         return jsonify({"success": True}), 200
+
+# # #     data = request.json
+# # #     repo = data.get('repo')
+# # #     message = data.get('message')
+# # #     files = data.get('files')
+
+# # #     if not repo or not message or not files:
+# # #         return jsonify({"error": "Missing required fields"}), 400
+
+# # #     headers = {
+# # #         "Authorization": f"token {GITHUB_TOKEN}",
+# # #         "Accept": "application/vnd.github.v3+json"
+# # #     }
+
+# # #     try:
+# # #         # Loop through the files from the Live Editor and push them to GitHub
+# # #         for file_name, content in files.items():
+# # #             url = f"https://api.github.com/repos/{repo}/contents/{file_name}"
+            
+# # #             # 1. Check if the file already exists (we need its SHA hash to update it)
+# # #             get_res = requests.get(url, headers=headers)
+# # #             sha = get_res.json().get('sha') if get_res.status_code == 200 else None
+
+# # #             # 2. GitHub requires file content to be Base64 encoded
+# # #             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+# # #             # 3. Build the commit payload
+# # #             payload = {
+# # #                 "message": message,
+# # #                 "content": encoded_content
+# # #             }
+# # #             if sha:
+# # #                 payload["sha"] = sha # Attach the SHA if updating an existing file
+
+# # #             # 4. Push to GitHub!
+# # #             put_res = requests.put(url, headers=headers, json=payload)
+            
+# # #             if put_res.status_code not in [200, 201]:
+# # #                 return jsonify({"error": f"Failed to push {file_name}: {put_res.json().get('message')}"}), 400
+
+# # #         return jsonify({"success": True, "message": "Successfully pushed to GitHub"})
+
+# # #     except Exception as e:
+# # #         return jsonify({"error": str(e)}), 500
+
+
+
+
+
+# # # import os
+# # # import base64
+# # # import requests
+# # # from flask import Blueprint, request, jsonify
+# # # from dotenv import load_dotenv
+
+# # # # Load environment variables from the .env file
+# # # load_dotenv()
+
+# # # devpool_routes = Blueprint("devpool_routes", __name__)
+
+# # # # Grab the token securely from the .env file
+# # # GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+# # # # -------------------------------
+# # # # GITHUB COMMIT (FROM LIVE EDITOR)
+# # # # -------------------------------
+# # # @devpool_routes.route('/api/github/commit', methods=['POST', 'OPTIONS'])
+# # # def github_commit():
+# # #     # Handle CORS preflight request explicitly
+# # #     if request.method == "OPTIONS":
+# # #         return jsonify({"success": True}), 200
+
+# # #     if not GITHUB_TOKEN:
+# # #         return jsonify({"error": "GitHub token is missing in backend .env file"}), 500
+
+# # #     data = request.json
+# # #     repo = data.get('repo')
+# # #     message = data.get('message')
+# # #     files = data.get('files')
+
+# # #     if not repo or not message or not files:
+# # #         return jsonify({"error": "Missing required fields"}), 400
+
+# # #     headers = {
+# # #         "Authorization": f"token {GITHUB_TOKEN}",
+# # #         "Accept": "application/vnd.github.v3+json"
+# # #     }
+
+# # #     try:
+# # #         # Loop through the files from the Live Editor and push them to GitHub
+# # #         for file_name, content in files.items():
+# # #             url = f"https://api.github.com/repos/{repo}/contents/{file_name}"
+            
+# # #             # 1. Check if the file already exists (we need its SHA hash to update it)
+# # #             get_res = requests.get(url, headers=headers)
+# # #             sha = get_res.json().get('sha') if get_res.status_code == 200 else None
+
+# # #             # 2. GitHub requires file content to be Base64 encoded
+# # #             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+# # #             # 3. Build the commit payload
+# # #             payload = {
+# # #                 "message": message,
+# # #                 "content": encoded_content
+# # #             }
+# # #             if sha:
+# # #                 payload["sha"] = sha # Attach the SHA if updating an existing file
+
+# # #             # 4. Push to GitHub
+# # #             put_res = requests.put(url, headers=headers, json=payload)
+            
+# # #             if put_res.status_code not in [200, 201]:
+# # #                 return jsonify({"error": f"Failed to push {file_name}: {put_res.json().get('message')}"}), 400
+
+# # #         return jsonify({"success": True, "message": "Successfully pushed to GitHub"})
+
+# # #     except Exception as e:
+# # #         return jsonify({"error": str(e)}), 500
+
+
+
+
+# # import base64
+# # import requests
 # # from flask import Blueprint, request, jsonify
-# # import sqlite3
 
 # # devpool_routes = Blueprint("devpool_routes", __name__)
 
-# # def get_db():
-# #     conn = sqlite3.connect("devpool.db")
-# #     conn.row_factory = sqlite3.Row
-# #     return conn
+# # # -------------------------------
+# # # GITHUB COMMIT (FROM LIVE EDITOR)
+# # # -------------------------------
+# # @devpool_routes.route('/api/github/commit', methods=['POST', 'OPTIONS'])
+# # def github_commit():
+# #     # Handle CORS preflight request explicitly
+# #     if request.method == "OPTIONS":
+# #         return jsonify({"success": True}), 200
 
-# # # -------------------------------
-# # # CREATE USER
-# # # -------------------------------
-# # @devpool_routes.route("/user", methods=["POST"])
-# # def create_user():
+# #     # 1. SECURELY EXTRACT THE USER'S TOKEN FROM THE HEADER
+# #     auth_header = request.headers.get('Authorization')
+# #     if not auth_header or not auth_header.startswith("Bearer "):
+# #         return jsonify({"error": "Unauthorized: Missing user GitHub token. Did you log in with GitHub?"}), 401
+    
+# #     # Grab the actual token string
+# #     user_github_token = auth_header.split(" ")[1]
+
 # #     data = request.json
-# #     conn = get_db()
-# #     cur = conn.cursor()
+# #     repo = data.get('repo')
+# #     message = data.get('message')
+# #     files = data.get('files')
 
-# #     cur.execute(
-# #         "INSERT INTO users (name, email, role) VALUES (?, ?, ?)",
-# #         (data["name"], data["email"], data["role"])
-# #     )
+# #     if not repo or not message or not files:
+# #         return jsonify({"error": "Missing required fields"}), 400
 
-# #     conn.commit()
-# #     conn.close()
-# #     return {"message": "User created successfully"}
+# #     # 2. USE THE USER'S TOKEN TO TALK TO GITHUB
+# #     headers = {
+# #         "Authorization": f"token {user_github_token}",
+# #         "Accept": "application/vnd.github.v3+json"
+# #     }
 
-# # # -------------------------------
-# # # CREATE PROJECT (FOUNDER FILLS ALL FIELDS)
-# # # -------------------------------
-# # @devpool_routes.route("/project", methods=["POST"])
-# # def create_project():
-# #     data = request.json
+# #     try:
+# #         # Loop through the files from the Live Editor and push them to GitHub
+# #         for file_name, content in files.items():
+# #             url = f"https://api.github.com/repos/{repo}/contents/{file_name}"
+            
+# #             # Check if the file already exists
+# #             get_res = requests.get(url, headers=headers)
+# #             sha = get_res.json().get('sha') if get_res.status_code == 200 else None
 
-# #     conn = get_db()
-# #     cur = conn.cursor()
+# #             # Base64 encode the content
+# #             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
-# #     cur.execute("""
-# #         INSERT INTO projects 
-# #         (title, description, tech_stack, difficulty, type, timeline, budget, spots_left, founder_name, founder_avatar)
-# #         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-# #     """, (
-# #         data["title"],
-# #         data["description"],
-# #         data["techStack"],
-# #         data["difficulty"],
-# #         data["type"],
-# #         data["timeline"],
-# #         data["budget"],
-# #         data["spotsLeft"],
-# #         data["founderName"],
-# #         data["founderAvatar"]
-# #     ))
-
-# #     conn.commit()
-# #     conn.close()
-
-# #     return {"message": "Project created successfully"}
-
-# # # -------------------------------
-# # # LIST PROJECTS (FULL DATA FOR UI)
-# # # -------------------------------
-# # @devpool_routes.route("/projects", methods=["GET"])
-# # def list_projects():
-# #     conn = get_db()
-# #     cur = conn.cursor()
-
-# #     rows = cur.execute("SELECT * FROM projects").fetchall()
-# #     conn.close()
-
-# #     projects = []
-# #     for row in rows:
-# #         projects.append({
-# #             "id": row["id"],
-# #             "title": row["title"],
-# #             "description": row["description"],
-# #             "techStack": row["tech_stack"].split(","),
-# #             "difficulty": row["difficulty"],
-# #             "type": row["type"],
-# #             "timeline": row["timeline"],
-# #             "budget": row["budget"],
-# #             "spotsLeft": row["spots_left"],
-# #             "applicants": 0,  # can be dynamic later
-# #             "founder": {
-# #                 "name": row["founder_name"],
-# #                 "avatar": row["founder_avatar"]
+# #             # Build the commit payload
+# #             payload = {
+# #                 "message": message,
+# #                 "content": encoded_content
 # #             }
-# #         })
+# #             if sha:
+# #                 payload["sha"] = sha 
 
-# #     return jsonify(projects)
+# #             # Push to GitHub as the Logged-In User!
+# #             put_res = requests.put(url, headers=headers, json=payload)
+            
+# #             if put_res.status_code not in [200, 201]:
+# #                 return jsonify({"error": f"Failed to push {file_name}: {put_res.json().get('message')}"}), 400
+
+# #         return jsonify({"success": True, "message": "Successfully pushed to GitHub"})
+
+# #     except Exception as e:
+# #         return jsonify({"error": str(e)}), 500
 
 
 
 
+# import base64
+# import requests
 # from flask import Blueprint, request, jsonify
-# import sqlite3
 
 # devpool_routes = Blueprint("devpool_routes", __name__)
 
-# def get_db():
-#     conn = sqlite3.connect("devpool.db")
-#     conn.row_factory = sqlite3.Row
-#     return conn
+# # -------------------------------
+# # GITHUB COLLABORATION: SEND INVITE (FOUNDER)
+# # -------------------------------
+# @devpool_routes.route('/api/github/invite', methods=['POST', 'OPTIONS'])
+# def github_invite():
+#     if request.method == "OPTIONS":
+#         return jsonify({"success": True}), 200
 
-# # -------------------------------
-# # SIGNUP
-# # -------------------------------
-# @devpool_routes.route("/signup", methods=["POST"])
-# def signup():
+#     auth_header = request.headers.get('Authorization')
+#     if not auth_header or not auth_header.startswith("Bearer "):
+#         return jsonify({"error": "Unauthorized"}), 401
+    
+#     founder_token = auth_header.split(" ")[1]
 #     data = request.json
-#     conn = get_db()
-#     cur = conn.cursor()
+#     repo = data.get('repo')
+#     target_username = data.get('developer_github')
 
-#     try:
-#         cur.execute("""
-#             INSERT INTO users (name, email, password)
-#             VALUES (?, ?, ?)
-#         """, (
-#             data["name"],
-#             data["email"],
-#             data["password"]
-#         ))
+#     if not repo or not target_username:
+#         return jsonify({"error": "Missing repo or developer username"}), 400
 
-#         conn.commit()
-#         return {"message": "User registered successfully"}
-
-#     except sqlite3.IntegrityError:
-#         return {"error": "Email already exists"}, 400
-
-#     finally:
-#         conn.close()
-
-# # -------------------------------
-# # LOGIN
-# # -------------------------------
-# @devpool_routes.route("/login", methods=["POST"])
-# def login():
-#     data = request.json
-#     conn = get_db()
-#     cur = conn.cursor()
-
-#     user = cur.execute("""
-#         SELECT * FROM users
-#         WHERE email=? AND password=?
-#     """, (
-#         data["email"],
-#         data["password"]
-#     )).fetchone()
-
-#     conn.close()
-
-#     if not user:
-#         return {"error": "Invalid credentials"}, 401
-
-#     return {
-#         "id": user["id"],
-#         "name": user["name"],
-#         "email": user["email"],
-#         "role": user["role"],
-#         "founder_status": user["founder_status"]
+#     headers = {
+#         "Authorization": f"token {founder_token}",
+#         "Accept": "application/vnd.github.v3+json"
 #     }
 
+#     url = f"https://api.github.com/repos/{repo}/collaborators/{target_username}"
+    
+#     try:
+#         res = requests.put(url, headers=headers, json={"permission": "push"})
+#         if res.status_code in [201, 204]:
+#             return jsonify({"success": True, "message": "Invite sent successfully!"})
+#         else:
+#             return jsonify({"error": f"GitHub API Error: {res.json().get('message')}"}), 400
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
+
 # # -------------------------------
-# # APPLY AS FOUNDER (YES CLICKED)
+# # GITHUB COMMIT & AUTO-ACCEPT INVITE (FROM LIVE EDITOR)
 # # -------------------------------
-# @devpool_routes.route("/apply-founder", methods=["POST"])
-# def apply_founder():
+# @devpool_routes.route('/api/github/commit', methods=['POST', 'OPTIONS'])
+# def github_commit():
+#     if request.method == "OPTIONS":
+#         return jsonify({"success": True}), 200
+
+#     auth_header = request.headers.get('Authorization')
+#     if not auth_header or not auth_header.startswith("Bearer "):
+#         return jsonify({"error": "Unauthorized: Missing user GitHub token. Did you log in with GitHub?"}), 401
+    
+#     user_github_token = auth_header.split(" ")[1]
+
 #     data = request.json
-#     conn = get_db()
-#     cur = conn.cursor()
+#     repo = data.get('repo')
+#     message = data.get('message')
+#     files = data.get('files')
 
-#     cur.execute("""
-#         UPDATE users
-#         SET founder_status='pending'
-#         WHERE id=?
-#     """, (data["user_id"],))
+#     if not repo or not message or not files:
+#         return jsonify({"error": "Missing required fields"}), 400
 
-#     conn.commit()
-#     conn.close()
+#     headers = {
+#         "Authorization": f"token {user_github_token}",
+#         "Accept": "application/vnd.github.v3+json"
+#     }
 
-#     return {"message": "Founder application submitted"}
+#     try:
+#         # --- AUTO-ACCEPT INVITATION LOGIC ---
+#         # 1. Check for pending invitations
+#         invites_url = "https://api.github.com/user/repository_invitations"
+#         invites_res = requests.get(invites_url, headers=headers)
+        
+#         if invites_res.status_code == 200:
+#             invitations = invites_res.json()
+#             invite_id = None
+            
+#             # Find if there is an invite for THIS specific repo
+#             for inv in invitations:
+#                 if inv.get('repository', {}).get('full_name', '').lower() == repo.lower():
+#                     invite_id = inv.get('id')
+#                     break
+            
+#             # If an invite exists, accept it silently!
+#             if invite_id:
+#                 accept_url = f"https://api.github.com/user/repository_invitations/{invite_id}"
+#                 requests.patch(accept_url, headers=headers)
+#         # -------------------------------------
 
-# # -------------------------------
-# # CREATE PROJECT (APPROVED FOUNDERS ONLY)
-# # -------------------------------
-# @devpool_routes.route("/project", methods=["POST"])
-# def create_project():
-#     data = request.json
-#     conn = get_db()
-#     cur = conn.cursor()
+#         # --- NORMAL PUSH LOGIC ---
+#         for file_name, content in files.items():
+#             url = f"https://api.github.com/repos/{repo}/contents/{file_name}"
+            
+#             get_res = requests.get(url, headers=headers)
+#             sha = get_res.json().get('sha') if get_res.status_code == 200 else None
 
-#     cur.execute("""
-#         INSERT INTO projects
-#         (title, description, tech_stack, difficulty, type, timeline,
-#          budget, spots_left, founder_name, founder_avatar)
-#         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-#     """, (
-#         data["title"],
-#         data["description"],
-#         data["techStack"],
-#         data["difficulty"],
-#         data["type"],
-#         data["timeline"],
-#         data["budget"],
-#         data["spotsLeft"],
-#         data["founderName"],
-#         data["founderAvatar"]
-#     ))
+#             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
-#     conn.commit()
-#     conn.close()
-
-#     return {"message": "Project created successfully"}
-
-# # -------------------------------
-# # LIST PROJECTS
-# # -------------------------------
-# @devpool_routes.route("/projects", methods=["GET"])
-# def list_projects():
-#     conn = get_db()
-#     cur = conn.cursor()
-
-#     rows = cur.execute("SELECT * FROM projects").fetchall()
-#     conn.close()
-
-#     projects = []
-#     for row in rows:
-#         projects.append({
-#             "id": row["id"],
-#             "title": row["title"],
-#             "description": row["description"],
-#             "techStack": row["tech_stack"].split(","),
-#             "difficulty": row["difficulty"],
-#             "type": row["type"],
-#             "timeline": row["timeline"],
-#             "budget": row["budget"],
-#             "spotsLeft": row["spots_left"],
-#             "applicants": 0,
-#             "founder": {
-#                 "name": row["founder_name"],
-#                 "avatar": row["founder_avatar"]
+#             payload = {
+#                 "message": message,
+#                 "content": encoded_content
 #             }
-#         })
+#             if sha:
+#                 payload["sha"] = sha 
 
-#     return jsonify(projects)
+#             put_res = requests.put(url, headers=headers, json=payload)
+            
+#             if put_res.status_code not in [200, 201]:
+#                 return jsonify({"error": f"Failed to push {file_name}: {put_res.json().get('message')}"}), 400
+
+#         return jsonify({"success": True, "message": "Successfully pushed to GitHub"})
+
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 
 
 
-
-from flask import Blueprint, request, jsonify
-import sqlite3
 import base64
 import requests
+from flask import Blueprint, request, jsonify
 
 devpool_routes = Blueprint("devpool_routes", __name__)
 
-# TODO: Replace with your actual GitHub token (Settings -> Developer Settings -> Personal Access Tokens (classic))
-# Ensure the token has the "repo" scope checked.
-GITHUB_TOKEN = "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN"
-
-def get_db():
-    conn = sqlite3.connect("devpool.db")
-    conn.row_factory = sqlite3.Row
-    return conn
-
 # -------------------------------
-# SIGNUP
+# GITHUB COLLABORATION: SEND INVITE (FOUNDER)
 # -------------------------------
-@devpool_routes.route("/signup", methods=["POST"])
-def signup():
+@devpool_routes.route('/api/github/invite', methods=['POST', 'OPTIONS'])
+def github_invite():
+    if request.method == "OPTIONS":
+        return jsonify({"success": True}), 200
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    founder_token = auth_header.split(" ")[1]
     data = request.json
-    conn = get_db()
-    cur = conn.cursor()
+    repo = data.get('repo')
+    target_username = data.get('developer_github')
 
-    try:
-        cur.execute("""
-            INSERT INTO users (name, email, password)
-            VALUES (?, ?, ?)
-        """, (
-            data["name"],
-            data["email"],
-            data["password"]
-        ))
+    if not repo or not target_username:
+        return jsonify({"error": "Missing repo or developer username"}), 400
 
-        conn.commit()
-        return {"message": "User registered successfully"}
-
-    except sqlite3.IntegrityError:
-        return {"error": "Email already exists"}, 400
-
-    finally:
-        conn.close()
-
-# -------------------------------
-# LOGIN
-# -------------------------------
-@devpool_routes.route("/login", methods=["POST"])
-def login():
-    data = request.json
-    conn = get_db()
-    cur = conn.cursor()
-
-    user = cur.execute("""
-        SELECT * FROM users
-        WHERE email=? AND password=?
-    """, (
-        data["email"],
-        data["password"]
-    )).fetchone()
-
-    conn.close()
-
-    if not user:
-        return {"error": "Invalid credentials"}, 401
-
-    return {
-        "id": user["id"],
-        "name": user["name"],
-        "email": user["email"],
-        "role": user["role"],
-        "founder_status": user["founder_status"]
+    headers = {
+        "Authorization": f"token {founder_token}",
+        "Accept": "application/vnd.github.v3+json"
     }
 
-# -------------------------------
-# APPLY AS FOUNDER (YES CLICKED)
-# -------------------------------
-@devpool_routes.route("/apply-founder", methods=["POST"])
-def apply_founder():
-    data = request.json
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE users
-        SET founder_status='pending'
-        WHERE id=?
-    """, (data["user_id"],))
-
-    conn.commit()
-    conn.close()
-
-    return {"message": "Founder application submitted"}
+    print(f"\n[INVITE ROUTE] Attempting to send invite to {target_username} for repo {repo}")
+    url = f"https://api.github.com/repos/{repo}/collaborators/{target_username}"
+    
+    try:
+        res = requests.put(url, headers=headers, json={"permission": "push"})
+        print(f"[INVITE ROUTE] GitHub API Response Status: {res.status_code}")
+        
+        if res.status_code in [201, 204]:
+            print("[INVITE ROUTE] ✅ Invite sent successfully (or already a collaborator).")
+            return jsonify({"success": True, "message": "Invite sent successfully!"})
+        else:
+            print(f"[INVITE ROUTE] ❌ Failed to send invite: {res.json()}")
+            return jsonify({"error": f"GitHub API Error: {res.json().get('message')}"}), 400
+    except Exception as e:
+        print(f"[INVITE ROUTE] ❌ Exception: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # -------------------------------
-# CREATE PROJECT (APPROVED FOUNDERS ONLY)
-# -------------------------------
-@devpool_routes.route("/project", methods=["POST"])
-def create_project():
-    data = request.json
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO projects
-        (title, description, tech_stack, difficulty, type, timeline,
-         budget, spots_left, founder_name, founder_avatar)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        data["title"],
-        data["description"],
-        data["techStack"],
-        data["difficulty"],
-        data["type"],
-        data["timeline"],
-        data["budget"],
-        data["spotsLeft"],
-        data["founderName"],
-        data["founderAvatar"]
-    ))
-
-    conn.commit()
-    conn.close()
-
-    return {"message": "Project created successfully"}
-
-# -------------------------------
-# LIST PROJECTS
-# -------------------------------
-@devpool_routes.route("/projects", methods=["GET"])
-def list_projects():
-    conn = get_db()
-    cur = conn.cursor()
-
-    rows = cur.execute("SELECT * FROM projects").fetchall()
-    conn.close()
-
-    projects = []
-    for row in rows:
-        projects.append({
-            "id": row["id"],
-            "title": row["title"],
-            "description": row["description"],
-            "techStack": row["tech_stack"].split(","),
-            "difficulty": row["difficulty"],
-            "type": row["type"],
-            "timeline": row["timeline"],
-            "budget": row["budget"],
-            "spotsLeft": row["spots_left"],
-            "applicants": 0,
-            "founder": {
-                "name": row["founder_name"],
-                "avatar": row["founder_avatar"]
-            }
-        })
-
-    return jsonify(projects)
-
-# -------------------------------
-# GITHUB COMMIT (FROM LIVE EDITOR)
+# GITHUB COMMIT & AUTO-ACCEPT INVITE (FROM LIVE EDITOR)
 # -------------------------------
 @devpool_routes.route('/api/github/commit', methods=['POST', 'OPTIONS'])
 def github_commit():
-    # Handle CORS preflight request explicitly
     if request.method == "OPTIONS":
         return jsonify({"success": True}), 200
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Unauthorized: Missing user GitHub token. Did you log in with GitHub?"}), 401
+    
+    user_github_token = auth_header.split(" ")[1]
 
     data = request.json
     repo = data.get('repo')
@@ -425,37 +799,82 @@ def github_commit():
         return jsonify({"error": "Missing required fields"}), 400
 
     headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
+        "Authorization": f"token {user_github_token}",
         "Accept": "application/vnd.github.v3+json"
     }
 
+    print(f"\n--- INITIATING GITHUB COMMIT & AUTO-ACCEPT ---")
+    print(f"Target Repo: {repo}")
+
     try:
-        # Loop through the files from the Live Editor and push them to GitHub
+        # --- AUTO-ACCEPT INVITATION LOGIC ---
+        print("1. Checking for pending invitations...")
+        invites_url = "https://api.github.com/user/repository_invitations"
+        invites_res = requests.get(invites_url, headers=headers)
+        
+        if invites_res.status_code == 200:
+            invitations = invites_res.json()
+            print(f"-> Found {len(invitations)} pending invitations.")
+            
+            invite_id = None
+            for inv in invitations:
+                inv_repo_name = inv.get('repository', {}).get('full_name', '')
+                print(f"   -> Looking at invite for: {inv_repo_name}")
+                if inv_repo_name.lower() == repo.lower():
+                    invite_id = inv.get('id')
+                    break
+            
+            print(f"-> Matched Invite ID: {invite_id}")
+            
+            if invite_id:
+                print(f"-> Attempting to auto-accept invite {invite_id}...")
+                accept_url = f"https://api.github.com/user/repository_invitations/{invite_id}"
+                accept_res = requests.patch(accept_url, headers=headers)
+                print(f"-> Auto-Accept Status Code: {accept_res.status_code}")
+                if accept_res.status_code not in [204, 200]:
+                    print(f"-> ❌ Auto-Accept Failed: {accept_res.text}")
+            else:
+                print("-> No matching invite found to accept.")
+        else:
+            print(f"-> ❌ Failed to fetch invitations. Status: {invites_res.status_code}")
+            print(f"-> Response: {invites_res.text}")
+        # -------------------------------------
+
+        # --- NORMAL PUSH LOGIC ---
+        print("\n2. Starting file push process...")
         for file_name, content in files.items():
             url = f"https://api.github.com/repos/{repo}/contents/{file_name}"
+            print(f"-> Trying to push file: {file_name}")
+            print(f"-> URL: {url}")
             
-            # 1. Check if the file already exists (we need its SHA hash to update it)
             get_res = requests.get(url, headers=headers)
+            print(f"-> GET existing file status (looking for SHA): {get_res.status_code}")
+            
+            if get_res.status_code == 404:
+                print("   (Note: 404 on GET is normal if the file is new. BUT if PUT fails next, you lack permissions or repo is empty.)")
+
             sha = get_res.json().get('sha') if get_res.status_code == 200 else None
 
-            # 2. GitHub requires file content to be Base64 encoded
             encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
-            # 3. Build the commit payload
             payload = {
                 "message": message,
                 "content": encoded_content
             }
             if sha:
-                payload["sha"] = sha # Attach the SHA if updating an existing file
+                payload["sha"] = sha 
 
-            # 4. Push to GitHub!
             put_res = requests.put(url, headers=headers, json=payload)
+            print(f"-> PUT file status: {put_res.status_code}")
             
             if put_res.status_code not in [200, 201]:
-                return jsonify({"error": f"Failed to push {file_name}: {put_res.json().get('message')}"}), 400
+                err_msg = put_res.json().get('message')
+                print(f"-> ❌ ERROR ON PUT: {err_msg}")
+                return jsonify({"error": f"Failed to push {file_name}: {err_msg}"}), 400
 
+        print("--- COMMIT SUCCESSFUL ---\n")
         return jsonify({"success": True, "message": "Successfully pushed to GitHub"})
 
     except Exception as e:
+        print(f"❌ CRITICAL EXCEPTION: {str(e)}")
         return jsonify({"error": str(e)}), 500

@@ -1431,6 +1431,7 @@ import Editor, { OnMount } from '@monaco-editor/react';
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
 import { Play, Terminal, Maximize2, Minimize2, Loader2, Globe, Github, Save } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface CodeEditorProps {
   fileName: string;
@@ -1556,6 +1557,19 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
     setOutput([`Pushing to GitHub: ${targetRepo}`, `Message: "${commitMessage}"...`]);
     setIsTerminalOpen(true);
 
+    // 1. GET THE LOGGED-IN USER'S UNIQUE GITHUB TOKEN
+    const { data: { session } } = await supabase.auth.getSession();
+    const userGithubToken = session?.provider_token;
+
+    if (!userGithubToken) {
+        setOutput([
+            `❌ Authentication Error: Missing GitHub Token.`,
+            `Please log out and log back in with GitHub to grant repository access.`
+        ]);
+        setIsCommitting(false);
+        return;
+    }
+
     const yFilesMap = yDoc.getMap('project-files');
     const projectFiles: Record<string, string> = {};
     yFilesMap.forEach((_, name) => { 
@@ -1563,12 +1577,15 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
     });
 
     try {
-        // --- REAL FLASK BACKEND CALL ---
-        const response = await fetch('http://127.0.0.1:5000/api/github/commit', {
+        // 2. SEND THE USER'S TOKEN TO FLASK VIA THE AUTHORIZATION HEADER
+        const response = await fetch('http://localhost:5000/api/github/commit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userGithubToken}` // <-- Passing their identity!
+            },
             body: JSON.stringify({
-                repo: targetRepo, // Uses the exact repo assigned by the Founder!
+                repo: targetRepo,
                 message: commitMessage,
                 files: projectFiles
             })
@@ -1587,7 +1604,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
             throw new Error(data.error || "Failed to commit to GitHub.");
         }
     } catch (error: any) {
-        setOutput([`❌ GitHub Push Error:`, error.message, `Ensure your Flask backend is running and has the Founder's GitHub Token.`]);
+        setOutput([`❌ GitHub Push Error:`, error.message]);
     } finally {
         setIsCommitting(false);
         setCommitMessage("");

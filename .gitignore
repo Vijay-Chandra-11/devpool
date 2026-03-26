@@ -3,6 +3,8 @@ devpool.db
 .dev.vars
 backend/__pycache__
 live-server/.env
+node_modules
+backend/.env
 # Local Databases
 *.db
 *.sqlite
