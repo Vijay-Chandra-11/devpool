@@ -84,6 +84,7 @@ import LearnerProjects from "./pages/LearnerProjects";
 import PostProject from "./pages/PostProject";
 import ManageProject from "./pages/ManageProject";
 import MyProjects from "./pages/MyProjects";
+import PostLearnerTask from './pages/PostLearnerTask';
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,7 @@ const App = () => (
             <Route path="/manage-project/:id" element={<ManageProject />} />
             <Route path="/my-projects" element={<MyProjects />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/post-learner-task" element={<PostLearnerTask />} />
           </Routes>
         </BrowserRouter>
       </ModeProvider>
