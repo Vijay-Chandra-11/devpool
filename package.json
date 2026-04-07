@@ -22,5 +22,8 @@
   "homepage": "https://github.com/Vijay-Chandra-11/devpool#readme",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@jitsi/react-sdk": "^1.4.4"
   }
 }
