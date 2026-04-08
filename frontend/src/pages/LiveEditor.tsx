@@ -7,10 +7,12 @@
 // import * as Y from 'yjs';
 // // @ts-ignore
 // import { WebsocketProvider } from 'y-websocket';
+// import { useToast } from "@/hooks/use-toast"; // <-- Added for visual notifications
 
 // const LiveEditor = () => {
 //   const location = useLocation();
 //   const urlParams = new URLSearchParams(location.search);
+//   const { toast } = useToast();
   
 //   let targetRepo = urlParams.get("repo");
 //   if (targetRepo && targetRepo.includes('github.com/')) {
@@ -27,6 +29,78 @@
 //   const [activeFile, setActiveFile] = useState<string>("");
 //   const [isFetchingRepo, setIsFetchingRepo] = useState(false);
 
+//   // ---------------------------------------------------------
+//   // 1. AUDIO ALERT FUNCTION
+//   // ---------------------------------------------------------
+//   const playAlert = (type: 'distracted' | 'sleepy' | 'posture') => {
+//     try {
+//       let audio;
+//       if (type === 'distracted') {
+//         audio = new Audio('/Distracted.ogg'); 
+//       } else if (type === 'sleepy') {
+//         audio = new Audio('/Sleepy.ogg');
+//       } else if (type === 'posture') {
+//         audio = new Audio('/Posture.ogg');
+//       }
+      
+//       if (audio) {
+//         // .catch() prevents the app from crashing if browser blocks autoplay
+//         audio.play().catch(e => console.log("Audio play blocked by browser:", e));
+//       }
+//     } catch (error) {
+//       console.error("Error playing audio:", error);
+//     }
+//   };
+
+//   // ---------------------------------------------------------
+//   // 2. DISTRACTION TRACKER POLLING LOOP
+//   // ---------------------------------------------------------
+//   useEffect(() => {
+//     const checkTracker = async () => {
+//       try {
+//         const res = await fetch(`${import.meta.env.VITE_TRACKER_URL}/api/status`);
+//         if (!res.ok) return; // Fail silently if server is off
+        
+//         const data = await res.json();
+
+//         if (data.status === 'distracted') {
+//           playAlert('distracted');
+//           toast({
+//             title: "Focus Alert!",
+//             description: "You seem distracted. Eyes on the code!",
+//             variant: "destructive",
+//           });
+//         } else if (data.status === 'sleepy') {
+//           playAlert('sleepy');
+//           toast({
+//             title: "Wake Up!",
+//             description: "You look sleepy. Consider taking a quick break.",
+//             variant: "destructive",
+//           });
+//         } else if (data.status === 'posture') {
+//           playAlert('posture');
+//           toast({
+//             title: "Posture Check!",
+//             description: "Please sit up straight to protect your back.",
+//             variant: "destructive",
+//           });
+//         }
+//       } catch (err) {
+//         // Ignore errors to prevent console spam if tracker isn't running
+//       }
+//     };
+
+//     // Run the checkTracker function every 3 seconds
+//     const trackerInterval = setInterval(checkTracker, 3000);
+
+//     // Cleanup interval when user leaves the Live Editor page
+//     return () => clearInterval(trackerInterval);
+//   }, [toast]);
+
+
+//   // ---------------------------------------------------------
+//   // 3. WORKSPACE & REPO INITIALIZATION (Your original code)
+//   // ---------------------------------------------------------
 //   useEffect(() => {
 //     const wsProvider = new WebsocketProvider('ws://localhost:1234', roomId, yDoc);
 //     setProvider(wsProvider);
@@ -70,11 +144,10 @@
 //                  if (fileRes.ok) {
 //                    const textContent = await fileRes.text();
 //                    const yText = yDoc.getText(file.name);
-//                    // Only insert if it's empty to prevent duplication on re-sync
 //                    if (yText.length === 0) {
 //                      yText.insert(0, textContent);
 //                    }
-//                    yFilesMap.set(file.name, "file"); // Just record that the file exists
+//                    yFilesMap.set(file.name, "file"); 
 //                  }
 //                }
 //             }
@@ -177,6 +250,8 @@
 
 
 
+
+
 import { useEffect, useState } from "react";
 import CodeEditor from "@/components/CodeEditor";
 import FileExplorer from "@/components/FileExplorer";
@@ -186,7 +261,7 @@ import { Loader2 } from "lucide-react";
 import * as Y from 'yjs';
 // @ts-ignore
 import { WebsocketProvider } from 'y-websocket';
-import { useToast } from "@/hooks/use-toast"; // <-- Added for visual notifications
+import { useToast } from "@/hooks/use-toast";
 
 const LiveEditor = () => {
   const location = useLocation();
@@ -223,7 +298,6 @@ const LiveEditor = () => {
       }
       
       if (audio) {
-        // .catch() prevents the app from crashing if browser blocks autoplay
         audio.play().catch(e => console.log("Audio play blocked by browser:", e));
       }
     } catch (error) {
@@ -232,16 +306,19 @@ const LiveEditor = () => {
   };
 
   // ---------------------------------------------------------
-  // 2. DISTRACTION TRACKER POLLING LOOP
+  // 2. DISTRACTION TRACKER WEBSOCKET
   // ---------------------------------------------------------
   useEffect(() => {
-    const checkTracker = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_TRACKER_URL}/api/status`);
-        if (!res.ok) return; // Fail silently if server is off
-        
-        const data = await res.json();
+    // Automatically convert the HTTP Render URL to a WS connection
+    const trackerUrl = import.meta.env.VITE_TRACKER_URL 
+      ? import.meta.env.VITE_TRACKER_URL.replace(/^http/, 'ws') + '/ws/focus'
+      : 'ws://localhost:8001/ws/focus';
 
+    const ws = new WebSocket(trackerUrl);
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
         if (data.status === 'distracted') {
           playAlert('distracted');
           toast({
@@ -265,23 +342,25 @@ const LiveEditor = () => {
           });
         }
       } catch (err) {
-        // Ignore errors to prevent console spam if tracker isn't running
+        console.error("Error parsing tracker message", err);
       }
     };
 
-    // Run the checkTracker function every 3 seconds
-    const trackerInterval = setInterval(checkTracker, 3000);
-
-    // Cleanup interval when user leaves the Live Editor page
-    return () => clearInterval(trackerInterval);
+    // Cleanup when leaving the page
+    return () => {
+      ws.close();
+    };
   }, [toast]);
 
-
   // ---------------------------------------------------------
-  // 3. WORKSPACE & REPO INITIALIZATION (Your original code)
+  // 3. WORKSPACE & REPO INITIALIZATION (Live Server)
   // ---------------------------------------------------------
   useEffect(() => {
-    const wsProvider = new WebsocketProvider('ws://localhost:1234', roomId, yDoc);
+    const liveServerUrl = import.meta.env.VITE_LIVE_SERVER_URL 
+      ? import.meta.env.VITE_LIVE_SERVER_URL.replace(/^http/, 'ws') 
+      : 'ws://localhost:1234';
+
+    const wsProvider = new WebsocketProvider(liveServerUrl, roomId, yDoc);
     setProvider(wsProvider);
 
     const yFilesMap = yDoc.getMap('project-files');
