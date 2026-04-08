@@ -470,7 +470,11 @@
 import os
 import numpy as np
 import mediapipe as mp
-import winsound
+import platform
+if platform.system() == 'Windows':
+    import winsound
+else:
+    winsound = None
 
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
@@ -482,11 +486,14 @@ AUDIO_DISTRACTED = os.path.abspath("./Audio/Distracted.wav")
 AUDIO_SLEEPY = os.path.abspath("./Audio/Sleepy.wav")
 AUDIO_POSTURE = os.path.abspath("./Audio/Posture.wav")
 
-# -------------------- AUDIO PLAY FUNCTION --------------------
 def play_audio(path):
     try:
         if os.path.exists(path):
-            winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            if winsound:
+                # FIX: Use the 'path' variable instead of the hardcoded string!
+                winsound.PlaySound(path, winsound.SND_ASYNC)
+            else:
+                print(f"ALERT: Audio bypassed for cloud. Triggered file: {path}")
     except Exception as e:
         print("Audio error:", e)
 
