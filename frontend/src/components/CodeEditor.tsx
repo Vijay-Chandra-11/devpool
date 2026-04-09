@@ -556,7 +556,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
     yFilesMap.forEach((_, name) => projectFiles[name] = yDoc.getText(name).toString());
 
     try {
-        const response = await fetch('http://localhost:5000/api/github/commit', {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${apiUrl}/api/github/commit`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.provider_token}` },
             body: JSON.stringify({ repo: targetRepo, message: commitMessage, files: projectFiles })
         });
