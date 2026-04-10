@@ -648,7 +648,8 @@ const ManageProject = () => {
 
     if (founderToken) {
         try {
-            const res = await fetch('http://localhost:5000/api/github/invite', {
+              const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+              const res = await fetch(`${backendUrl}/api/github/invite`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${founderToken}` },
                 body: JSON.stringify({ repo: repoInput, developer_github: applicantGithub })

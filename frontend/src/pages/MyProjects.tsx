@@ -401,7 +401,7 @@ const MyProjects = () => {
                         onClick={() => setActiveVideoRoom(app.meet_room_id)}
                         className="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 w-full md:w-auto shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-all"
                       >
-                        <Video className="w-4 h-4"/> Join Video Call
+                        <Video className="w-4 h-4"/> Join Interview
                       </button>
                     )}
 
