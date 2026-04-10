@@ -624,7 +624,7 @@ const ManageProject = () => {
     setIsFetchingProfile(true);
     setSelectedProfile(null);
     try {
-        const { data, error } = await supabase.from('github_analysis').select('*').ilike('github_username', githubUsername).single();
+        const { data, error } = await supabase.from('github_analysis').select('*').ilike('github_username', githubUsername).maybeSingle();
         if (error) throw error;
         if (data && data.analysis_data) setSelectedProfile(data.analysis_data);
         else throw new Error("Analysis data empty.");
