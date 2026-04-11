@@ -13,6 +13,7 @@
 //   yDoc: Y.Doc;
 //   provider: any;
 //   targetRepo: string | null; 
+//   isReadOnly?: boolean;
 // }
 
 // const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provider, targetRepo }) => {
@@ -94,7 +95,11 @@
 //       })
 //       .catch(err => console.error("[Tracker] Webcam access denied:", err));
 
-//     const ws = new WebSocket('ws://localhost:8001/ws/focus');
+//     const trackerUrl = import.meta.env.VITE_TRACKER_URL 
+//       ? import.meta.env.VITE_TRACKER_URL.replace(/^http/, 'ws') + '/ws/focus'
+//       : 'ws://localhost:8001/ws/focus';
+
+//     const ws = new WebSocket(trackerUrl);
 //     wsRef.current = ws;
 
 //     ws.onopen = () => {
@@ -196,7 +201,8 @@
 //     yFilesMap.forEach((_, name) => projectFiles[name] = yDoc.getText(name).toString());
 
 //     try {
-//         const response = await fetch('http://localhost:5000/api/github/commit', {
+//         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+//         const response = await fetch(`${apiUrl}/api/github/commit`, {
 //             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.provider_token}` },
 //             body: JSON.stringify({ repo: targetRepo, message: commitMessage, files: projectFiles })
 //         });
@@ -358,7 +364,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
-import { Play, Terminal, Maximize2, Minimize2, Loader2, Globe, Github, Save, Brain, XCircle } from 'lucide-react';
+import { Play, Terminal, Maximize2, Minimize2, Loader2, Globe, Github, Save, Brain, XCircle, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useMode } from '@/context/ModeContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -369,9 +375,10 @@ interface CodeEditorProps {
   yDoc: Y.Doc;
   provider: any;
   targetRepo: string | null; 
+  isReadOnly?: boolean; // --- NEW: Added isReadOnly prop ---
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provider, targetRepo }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provider, targetRepo, isReadOnly }) => {
   const { mode } = useMode(); 
   const [editorInstance, setEditorInstance] = useState<any>(null);
   const bindingRef = useRef<any>(null);
@@ -392,7 +399,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
   const scoreHistoryRef = useRef<number[]>([]); 
   
   // --- NATIVE AUDIO FILE REFS ---
-  // Ensure these files are physically located inside your frontend/public folder!
   const audioDistractedRef = useRef(new Audio('/Distracted.ogg'));
   const audioSleepyRef = useRef(new Audio('/Sleepy.ogg'));
   
@@ -480,12 +486,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
 
           // --- PLAY NATIVE AUDIO FILES ---
           if (data.play_distracted_audio) {
-             // Reset the audio to the beginning before playing
              audioDistractedRef.current.currentTime = 0;
              audioDistractedRef.current.play().catch(e => console.warn("Browser blocked autoplay:", e));
           }
           if (data.play_sleepy_audio) {
-             // Reset the audio to the beginning before playing
              audioSleepyRef.current.currentTime = 0;
              audioSleepyRef.current.play().catch(e => console.warn("Browser blocked autoplay:", e));
           }
@@ -508,7 +512,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
   const saveSessionData = async () => {
     if (scoreHistoryRef.current.length === 0) return;
     
-    // Calculates the exact average focus rate to store in the DB
     const avgScore = Math.max(0, Math.round(scoreHistoryRef.current.reduce((a, b) => a + b, 0) / scoreHistoryRef.current.length));
     const durationMinutes = (scoreHistoryRef.current.length * 0.5) / 60;
     
@@ -650,13 +653,18 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
 
       {/* Tab Bar */}
       <div className="h-12 bg-[#2d2d2d] flex items-center justify-between px-4 border-b border-[#1e1e1e]">
-        <div className="flex items-center px-4 py-1.5 bg-[#1e1e1e] text-gray-200 text-sm border-t-2 border-blue-500 rounded-t-md mt-2">
+        <div className="flex items-center px-4 py-1.5 bg-[#1e1e1e] text-gray-200 text-sm border-t-2 border-blue-500 rounded-t-md mt-2 gap-2">
            {fileName}
+           {/* --- NEW: Visual indicator that they are in Shadow Mode --- */}
+           {isReadOnly && (
+             <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] uppercase font-bold rounded flex items-center gap-1 border border-purple-500/30 ml-2">
+               <Lock className="w-3 h-3" /> Sandbox Mode
+             </span>
+           )}
         </div>
         
         <div className="flex items-center gap-4">
           
-          {/* --- NAVBAR BUTTON --- */}
           <button 
             onClick={() => setShowTracker(!showTracker)} 
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all border ${showTracker ? 'bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.2)]' : 'bg-[#1e1e1e] text-gray-400 border-[#444] hover:bg-[#333]'}`}
@@ -667,9 +675,12 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
           
           <div className="h-6 w-px bg-[#444] mx-1"></div>
 
-          <button onClick={() => setShowCommitModal(true)} disabled={isCommitting || !targetRepo} className="flex items-center gap-2 px-3 py-1.5 bg-[#1e1e1e] hover:bg-[#333] border border-[#444] text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
-              {isCommitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save to Repo
-          </button>
+          {/* --- FIXED: Hide the Save to Repo button if isReadOnly is true! --- */}
+          {!isReadOnly && (
+            <button onClick={() => setShowCommitModal(true)} disabled={isCommitting || !targetRepo} className="flex items-center gap-2 px-3 py-1.5 bg-[#1e1e1e] hover:bg-[#333] border border-[#444] text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                {isCommitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save to Repo
+            </button>
+          )}
 
           <button onClick={runCode} disabled={isRunning} className="flex items-center gap-2 px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors">
             {isRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : (fileName.endsWith('.html') ? <Globe className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />)}
@@ -681,7 +692,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
       {/* Editor Split */}
       <div className="flex-1 flex overflow-hidden relative">
         <div className={`${fileName.endsWith('.html') ? 'w-1/2' : 'w-full'} h-full`}>
-          <Editor height="100%" language={getLanguage(fileName)} theme="vs-dark" onMount={handleEditorDidMount} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true }} />
+          <Editor 
+            height="100%" 
+            language={getLanguage(fileName)} 
+            theme="vs-dark" 
+            onMount={handleEditorDidMount} 
+            options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true }} 
+          />
         </div>
         {fileName.endsWith('.html') && (
           <div className="w-1/2 h-full bg-white border-l border-gray-700">

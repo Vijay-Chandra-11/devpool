@@ -7,7 +7,7 @@
 // import * as Y from 'yjs';
 // // @ts-ignore
 // import { WebsocketProvider } from 'y-websocket';
-// import { useToast } from "@/hooks/use-toast"; // <-- Added for visual notifications
+// import { useToast } from "@/hooks/use-toast";
 
 // const LiveEditor = () => {
 //   const location = useLocation();
@@ -44,7 +44,6 @@
 //       }
       
 //       if (audio) {
-//         // .catch() prevents the app from crashing if browser blocks autoplay
 //         audio.play().catch(e => console.log("Audio play blocked by browser:", e));
 //       }
 //     } catch (error) {
@@ -53,16 +52,19 @@
 //   };
 
 //   // ---------------------------------------------------------
-//   // 2. DISTRACTION TRACKER POLLING LOOP
+//   // 2. DISTRACTION TRACKER WEBSOCKET
 //   // ---------------------------------------------------------
 //   useEffect(() => {
-//     const checkTracker = async () => {
-//       try {
-//         const res = await fetch(`${import.meta.env.VITE_TRACKER_URL}/api/status`);
-//         if (!res.ok) return; // Fail silently if server is off
-        
-//         const data = await res.json();
+//     // Automatically convert the HTTP Render URL to a WS connection
+//     const trackerUrl = import.meta.env.VITE_TRACKER_URL 
+//       ? import.meta.env.VITE_TRACKER_URL.replace(/^http/, 'ws') + '/ws/focus'
+//       : 'ws://localhost:8001/ws/focus';
 
+//     const ws = new WebSocket(trackerUrl);
+
+//     ws.onmessage = (event) => {
+//       try {
+//         const data = JSON.parse(event.data);
 //         if (data.status === 'distracted') {
 //           playAlert('distracted');
 //           toast({
@@ -86,23 +88,25 @@
 //           });
 //         }
 //       } catch (err) {
-//         // Ignore errors to prevent console spam if tracker isn't running
+//         console.error("Error parsing tracker message", err);
 //       }
 //     };
 
-//     // Run the checkTracker function every 3 seconds
-//     const trackerInterval = setInterval(checkTracker, 3000);
-
-//     // Cleanup interval when user leaves the Live Editor page
-//     return () => clearInterval(trackerInterval);
+//     // Cleanup when leaving the page
+//     return () => {
+//       ws.close();
+//     };
 //   }, [toast]);
 
-
 //   // ---------------------------------------------------------
-//   // 3. WORKSPACE & REPO INITIALIZATION (Your original code)
+//   // 3. WORKSPACE & REPO INITIALIZATION (Live Server)
 //   // ---------------------------------------------------------
 //   useEffect(() => {
-//     const wsProvider = new WebsocketProvider('ws://localhost:1234', roomId, yDoc);
+//     const liveServerUrl = import.meta.env.VITE_LIVE_SERVER_URL 
+//       ? import.meta.env.VITE_LIVE_SERVER_URL.replace(/^http/, 'ws') 
+//       : 'ws://localhost:1234';
+
+//     const wsProvider = new WebsocketProvider(liveServerUrl, roomId, yDoc);
 //     setProvider(wsProvider);
 
 //     const yFilesMap = yDoc.getMap('project-files');
@@ -252,6 +256,7 @@
 
 
 
+
 import { useEffect, useState } from "react";
 import CodeEditor from "@/components/CodeEditor";
 import FileExplorer from "@/components/FileExplorer";
@@ -276,6 +281,9 @@ const LiveEditor = () => {
   
   const projectId = urlParams.get("projectId");
   const roomId = projectId || "devpool-demo"; 
+  
+  // --- NEW: Read the readonly flag from the URL ---
+  const isReadOnly = urlParams.get("readonly") === "true";
   
   const [yDoc] = useState(() => new Y.Doc());
   const [provider, setProvider] = useState<any>(null);
@@ -309,7 +317,6 @@ const LiveEditor = () => {
   // 2. DISTRACTION TRACKER WEBSOCKET
   // ---------------------------------------------------------
   useEffect(() => {
-    // Automatically convert the HTTP Render URL to a WS connection
     const trackerUrl = import.meta.env.VITE_TRACKER_URL 
       ? import.meta.env.VITE_TRACKER_URL.replace(/^http/, 'ws') + '/ws/focus'
       : 'ws://localhost:8001/ws/focus';
@@ -346,7 +353,6 @@ const LiveEditor = () => {
       }
     };
 
-    // Cleanup when leaving the page
     return () => {
       ws.close();
     };
@@ -452,12 +458,22 @@ const LiveEditor = () => {
   }, [targetRepo, roomId]);
 
   const handleCreateFile = (name: string) => {
+    // If it's read-only, block file creation
+    if (isReadOnly) {
+      toast({ title: "Read-Only Mode", description: "You cannot create files while shadow learning.", variant: "destructive" });
+      return;
+    }
     const yFilesMap = yDoc.getMap('project-files');
     if (!yFilesMap.has(name)) yFilesMap.set(name, "file");
     setActiveFile(name);
   };
 
   const handleDeleteFile = (name: string) => {
+    // If it's read-only, block file deletion
+    if (isReadOnly) {
+      toast({ title: "Read-Only Mode", description: "You cannot delete files while shadow learning.", variant: "destructive" });
+      return;
+    }
     const yFilesMap = yDoc.getMap('project-files');
     yFilesMap.delete(name);
     if (activeFile === name) setActiveFile("");
@@ -492,6 +508,7 @@ const LiveEditor = () => {
               yDoc={yDoc} 
               provider={provider}
               targetRepo={targetRepo}
+              isReadOnly={isReadOnly} // --- NEW: Pass flag down ---
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
