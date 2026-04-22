@@ -639,7 +639,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ fileName, userName, yDoc, provi
       setPreviewSrc(`<html><head><style>${css}</style></head><body>${html}<script>${js}</script></body></html>`);
       return;
     }
-    setIsRunning(true); setOutput(["Running on local server (port 1234)..."]); setIsTerminalOpen(true);
+    setIsRunning(true); setOutput(["🚀 Compiling and running in DevPool Cloud Engine..."]); setIsTerminalOpen(true);
     const ws = provider?.ws;
     if (ws && ws.readyState === WebSocket.OPEN) {
         const yFilesMap = yDoc.getMap('project-files');
