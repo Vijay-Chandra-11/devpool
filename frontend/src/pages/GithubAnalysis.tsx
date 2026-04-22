@@ -22,7 +22,8 @@ const GithubAnalysis = () => {
 
   // --- REPLACE THIS WITH YOUR DEPLOYED CLOUDFLARE WORKER URL ---
   // If running locally via `wrangler dev`, it is usually http://127.0.0.1:8787
-  const WORKER_API_URL = "/analyzer-api"; 
+  // const WORKER_API_URL = "/analyzer-api"; 
+  const WORKER_API_URL = import.meta.env.VITE_GITHUB_WORKER_URL; 
 
   // 1. Check Auth & Load
   useEffect(() => {
