@@ -114,7 +114,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ currentCode, activeFile }) =>
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-sm">AI Code Tutor</h3>
-                  <p className="text-xs text-blue-400">Gemini 1.5 Flash</p>
+                  <p className="text-xs text-blue-400">Gemini 2.5 Flash</p>
                 </div>
               </div>
               <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
