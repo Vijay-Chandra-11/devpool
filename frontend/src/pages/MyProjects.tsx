@@ -292,7 +292,7 @@ const MyProjects = () => {
           .from(tableName)
           .select('*')
           .eq('id', app.project_id)
-          .single();
+          .maybeSingle();
 
         if (projectData) {
           enrichedApps.push({
